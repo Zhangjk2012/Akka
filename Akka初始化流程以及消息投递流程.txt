@@ -78,6 +78,60 @@ val system = ActorSystem("AkkaLocalTest")
                 6、它创建的是一个Guardian  Actor
             11、systemGuardian，它也是一个LocalActorRef，它是一个system的守护，父节点同样是rootGuardian，跟guardian初始化是一样的，它是一个SystemGuardian。
         2、如果是remote，则是RemoteActorRefProvider
+            1.声明一个LocalActorRefProvider，保证本地的actor系统可用。
+            2.使用local，获取系统、根、用户守护等。
+            3.调用local的init方法，就是本地ActorRefProvider的初始化过程。
+            4.保存system到本地ThreadLocal
+            5.创建一个remotingTerminator，远程终止器，它是一个状态机，FSM。传递一个systemGuardian作为参数。
+            6.创建一个internals，Internals。参数有：RemoteSystemDaemon
+                1、Internals是一个case class。
+                2、RemoteSystemDaemon初始化的一些信息：
+                    1.它是一个actorref，且，它VirtualPathContainer
+                    2.订阅AddressTerminatedTopic
+                3、注册extraName到local的extraNames
+                4、初始化SerializationExtension
+                5、初始化transport,也即Remoting类。
+                    1.初始化transportSupervisor，这个是非常关键的一个变量，它是一个ActorRef(TransportSupervisor)，名字是：transports，是系统级别的，所以它的路径是：/system/transports
+                    2.定义一个EventPublisher，就是发布Remoting的消息。
+            7.给remotingTerminator发送internals。
+                1、内部处理消息，往systemGuardian发送注册RegisterTerminationHook的消息，在系统的处理类SystemGuardian中，context会监控这个remotingTerminator，并把它加入到Set中。
+            8.调用Remoting的start方法。
+                1、主要是初始化endpointManager的过程，它是一个ActorRef。
+                2、创建一个Promise。
+                3、向manager发送Listen消息
+                    1.接收到Listen消息后，处理这个消息。
+                        1、动态生成一个Transport，配置文件中默认的配置是NettyTransport。
+                        2、wrappedTransport，封装Transport，因为默认没有配置，所以还是NettyTransport。
+                        3、生成一个AkkaProtocolTransport
+                        4、调用AkkaProtocolTransport的listen，也就是调用NettyTransport的listen方法。
+                            1.生成一个InetSocketAddress，如果bind-port没有配置，则使用port，默认是2552
+                            2.生成一个Netty的ServerBootstrap启动器，并做bind操作。
+                            3.设置readable为false。
+                            4.等待bind成功后，设置readable为true。
+                        5、等上面的Netty bind完成后，调用interceptListen方法
+                            1.向/system/transports发送一个注册消息RegisterTransportActor
+                                1、主要是用transports的context创建一个actor，而这个Actor是AkkaProtocolManager。
+                            2.向AkkaProtocolManager发送ListenUnderlying
+                                1、把ready变成receive
+                            3.注册ActorAssociationEventListener
+                    2.处理成功后，构建一个ListensResult，再发送给自己
+                    3.处理Result，设置一个ActorAssociationEventListener(self)到Promise，回传给发送者。
+                4、处理完成，向manager发送StartupFinished消息
+                    1.接收到StartupFinished消息后，，处理
+                        1、把endpointManager的receive变成accepting偏函数
+                5、通知RemotingListenEvent消息
+            9.创建远程监控。RemoteWatcher
+            10.创建RemoteDeploymentWatcher监控。
+            以上，初始化完成。
+
+
+
+
+
+
+
+
+
         3、如果是cluster，则是ClusterActorRefProvider
         4、如果是fqcn，则是fqcn，也即其它的provider
         5、
@@ -104,7 +158,6 @@ val system = ActorSystem("AkkaLocalTest")
                     4、把原来UnStartCell中的消息给ActorCell转发过去。
                     5、并把ActorCell指定到underlying。
                 5.这时候RepointableActorRef创建完成。
-
     5、发送消息：
         1.调用!发送消息，最终调用的是ActorCell的sendMessage方法，也就是Dispatch的实现方法，并把消息作了封装Envelope。
         2.调用dispatcher的dispatch方法，进行消息的派发。
@@ -114,3 +167,7 @@ val system = ActorSystem("AkkaLocalTest")
             2、调用actor的invoke方法，也即ActorCell的invoke方法
             3、最终，执行Actor的aroundReceive，也即咱们实现的Actor Trait中的override def receive: Receive
         5、消息发送完成。
+6、如果是发送远程消息，则需要使用actorSelection
+    1.创建一个ActorSelection对象
+        1、创建一个RemoteActorRef对象
+    2.
