@@ -113,7 +113,7 @@ val system = ActorSystem("AkkaLocalTest")
                                 1、主要是用transports的context创建一个actor，而这个Actor是AkkaProtocolManager。
                             2.向AkkaProtocolManager发送ListenUnderlying
                                 1、把ready变成receive
-                            3.注册ActorAssociationEventListener
+                            3.注册ActorAssociationEventListener参数是AkkaProtocolManager，并返回。
                     2.处理成功后，构建一个ListensResult，再发送给自己
                     3.处理Result，设置一个ActorAssociationEventListener(self)到Promise，回传给发送者。
                 4、处理完成，向manager发送StartupFinished消息
@@ -152,7 +152,7 @@ val system = ActorSystem("AkkaLocalTest")
                 2.把Cell赋值给underlying，并赋值给lookup
                 3.给guardian发送Supervise系统消息
                 4.在处理这个消息使，由于async是true，所以还会调用此RepointableActorRef的point方法
-                    1、在point方法中，创建一个真正的ActorCell，并调用init方法，参数：sendSupervise = false，ActorCell的初始化跟上面的一样。
+                    1、在point方法中，创建一个真正的ActorCell，并调用init方法，参数：sendSupervise = false，ActorCell的初始化参考4-8-9-2。
                     2、替换lookup为此cell。
                     3、调用cell的start方法，跟4-8-1-9-4是一样的了
                     4、把原来UnStartCell中的消息给ActorCell转发过去。
@@ -169,5 +169,67 @@ val system = ActorSystem("AkkaLocalTest")
         5、消息发送完成。
 6、如果是发送远程消息，则需要使用actorSelection
     1.创建一个ActorSelection对象
-        1、创建一个RemoteActorRef对象
-    2.
+        1、如果Actor不在本机上，则创建一个RemoteActorRef对象，否则，把rootGuardian返回去。
+        2、这里着重说一下RemoteActorRef的发送过程
+    2.调用ActorSelection的!方法。
+        1、在方法中，调用ActorSelection的deliverSelection，并封装消息成ActorSelectionMessage
+        2、调用RemoteActorRef的tell方法。
+            1.在tell方法中，调用remote的send方法，而这个remote是Remoting类
+                1、在Remoting的send方法中，封装消息成Send类，然后调用endpointManager的tell方法。
+                    1.在EndpointManager处理Send消息时，
+                        1、首先判断，这个addressToWritable是否已经创建过，如果没有，则创建，这里是第一次调用，所以先创建
+                        2、使用context.actorOf创建一个ReliableDeliverySupervisor的Endpoint，也即一个ActorRef。
+                            1.actorOf的流程，参考第五条
+                            2.在ReliableDeliverySupervisor的初始化时，会调用createWriter，创建一个EndpointWriter的ActorRef。
+                                1、在EndpointWriter的preStart方法中，会判断handler也即AkkaProtocolHandle是否已经创建，如果没有则进行AkkaProtocolHandle的创建工作
+                                    1.调用AkkaProtocolTransport的associate方法，而这个方法中，则向manager(4-8-2-8-5-1中创建)发送一个AssociateUnderlyingRefuseUid的消息，然后等待manager的处理结果。
+                                    2.在AkkaProtocolManager接收到消息后，做的处理是：
+                                        1、创建ProtocolStateActor，它是一个FSM，它的编解码是AkkaPduProtobufCodec。
+                                            1.初始化时，做OutboundUnassociated流程处理，调用NettyTransport的associate方法，进行远程连接。
+                                            2.然后把这个操作pipeTo到自己，封装成Handler(_)消息处理，
+                                            3.以Closed，OutboundUnassociated作为这个状态机的处理。
+                                            4.等待Netty Client连接成功后，返回一个Future[AssociationHandle]，这时候，需要when(Closed)方法处理消息。
+                                                1、向remote发送握手消息，假设发送成功，则做failureDetector的heartbeat，初始化定时操作，等待WaitHandshake处理流程，需要等待远程回包、
+                                                2、假设接收到成功回包，则更改状态机为Open状态，并返回AkkaProtocolHandle到AkkaProtocolManager。
+                                    3.在接收到成功的Handle消息后，首先向父节点发送一个ReliableDeliverySupervisor.GotUid消息
+                                    4.创建一个EndpointReader，用来读取消息
+                                    5.更改Receive，是writing或者buffered
+                            3.在接收到GotUid后，向自己的父节点发送一个GotUid，resendAll。
+                        3、在接收到GotUid后，判断是否是拒绝对象，如果不是，则注册registerWritableEndpointUid，然后处理已经缓存的消息(这个是根据Idle来判断的，具体的逻辑还需要再分析)。
+                        4、直接发送消息
+        3、消息发送流程完成。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ReliableDeliverySupervisor
+EndpointWriter
+
+
+
+
+
+
+
+
+
+
