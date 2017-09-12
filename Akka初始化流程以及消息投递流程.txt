@@ -97,41 +97,82 @@ val system = ActorSystem("AkkaLocalTest")
                 1、内部处理消息，往systemGuardian发送注册RegisterTerminationHook的消息，在系统的处理类SystemGuardian中，context会监控这个remotingTerminator，并把它加入到Set中。
             8.调用Remoting的start方法。
                 1、主要是初始化endpointManager的过程，它是一个ActorRef。
-                2、创建一个Promise。
-                3、向manager发送Listen消息
-                    1.接收到Listen消息后，处理这个消息。
+                2、创建一个addressesPromise的Promise。
+                3、向manager发送Listen消息，传递一个addressesPromise
+                    1.接收到Listen消息后，调用listens处理这个消息。
                         1、动态生成一个Transport，配置文件中默认的配置是NettyTransport。
                         2、wrappedTransport，封装Transport，因为默认没有配置，所以还是NettyTransport。
                         3、生成一个AkkaProtocolTransport
-                        4、调用AkkaProtocolTransport的listen，也就是调用NettyTransport的listen方法。
-                            1.生成一个InetSocketAddress，如果bind-port没有配置，则使用port，默认是2552
-                            2.生成一个Netty的ServerBootstrap启动器，并做bind操作。
-                            3.设置readable为false。
-                            4.等待bind成功后，设置readable为true。
-                        5、等上面的Netty bind完成后，调用interceptListen方法
-                            1.向/system/transports发送一个注册消息RegisterTransportActor
-                                1、主要是用transports的context创建一个actor，而这个Actor是AkkaProtocolManager。
-                            2.向AkkaProtocolManager发送ListenUnderlying
-                                1、把ready变成receive
-                            3.注册ActorAssociationEventListener参数是AkkaProtocolManager，并返回。
-                    2.处理成功后，构建一个ListensResult，再发送给自己
-                    3.处理Result，设置一个ActorAssociationEventListener(self)到Promise，回传给发送者。
-                4、处理完成，向manager发送StartupFinished消息
+                        4、调用AkkaProtocolTransport的listen，也即它的父类AbstractTransportAdapter的方法，
+                            1.在listen方法中，它的返回值是Future[(Address, Promise[AssociationEventListener])]，
+                            2.声明一个upstreamListenerPromise的Promise，然后调用NettyTransport的listen方法。
+                                1、生成一个InetSocketAddress，如果bind-port没有配置，则使用port，默认是2552
+                                2、生成一个Netty的ServerBootstrap启动器，并做bind操作。
+                                3、设置readable为false。
+                                4、设置associationListenerPromise，当这个promise完成后，设置channel的readable为true。
+                                5、返回一个address与associationListenerPromise组成的元组。
+                            3.拿到返回的Promise(associationListenerPromise)，设置tryCompleteWith，调用interceptListen方法，这个方法在ActorTransportAdapter中实现
+                                1、interceptListen方法的返回值是：Future[AssociationEventListener]，返回是一个事件的监听，它的参数是upstreamListenerPromise，就是在4-8-2-8-3-1-4-2中创建的。
+                                2、向manager注册，生成一个ActorRef
+                                    1.向/system/transports发送一个注册消息RegisterTransportActor，而这个transports就是4-8-2-6-5-1中创建的TransportSupervisor。
+                                        1、这个发送是调用的？ 也即 ask，需要接收者返回一个值给发送者。？方法返回一个Future。
+                                        2、参数是：managerProps，这个方法的实现是在AkkaProtocolTransport中实现的。
+                                        3、主要是用transports的context创建一个actor，而这个Actor是AkkaProtocolManager。
+                                        4、创建完成后，再把创建的ActorRef返回给发送者。发送者使用Future接收。
+                                    2.设置manager为返回值的ActorRef，这个ref的真实Actor就是AkkaProtocolManager。
+                                    3.向AkkaProtocolManager发送ListenUnderlying，并把upstreamListenerPromise一并传递过去。
+                                        1、manager把ready变成receive
+                                        2、并指定upstreamListenerPromise携带的值赋值给associationListener(最终会是：EndpointManager)
+                                    4.返回一个ActorAssociationEventListener参数是AkkaProtocolManager的ActorRef。
+                                3、associationListenerPromise中就会被赋值为：ActorAssociationEventListener(AkkaProtocolManager)
+                            4.当interceptListen中的manager创建完成后，Future也就完成了，这时候就会执行tryCompleteWith。也即associationListenerPromise执行完成。
+                                1.就会自动自行4-8-2-8-3-1-4-4，也即设置readable为true。
+                        5、返回一个address与upstreamListenerPromise的元组。
+                    2.Listen处理完成后，构建一个ListensResult，再发送给自己
+                    3.处理ListensResult，设置upstreamListenerPromise的success为一个ActorAssociationEventListener(self)，这个self就是EndpointManager的ActorRef，这时候这个Promise已经完成。
+                        1、完成Promise后，会执行在它上注册的方法：AkkaProtocolManager中的associationListener会被赋值：ActorAssociationEventListener(self)，参考：4-8-2-8-3-1-4-3-2-3-2
+                    4.设置addressesPromise的成功消息。
+                4、等待addressesPromise的success完成，向manager发送StartupFinished消息
                     1.接收到StartupFinished消息后，，处理
                         1、把endpointManager的receive变成accepting偏函数
                 5、通知RemotingListenEvent消息
             9.创建远程监控。RemoteWatcher
             10.创建RemoteDeploymentWatcher监控。
             以上，初始化完成。
-
-
-
-
-
-
-
-
-
+            11.当有客户端接入时，执行的操作是：
+                1、调用channelConnected进一步调用TcpServerHandler的onConnect方法，再调用initInbound方法，这个方法在ServerHandler中。
+                    1.执行associationListenerFuture.foreach方法，而这个future正是NettyTransport中的associationListenerPromise。
+                        1、调用init方法，这是一个柯里化函数，接收两个参数，主要是第二个参数：listener notify InboundAssociation(_)，通知associationListenerPromise持有的Listener。
+                            1.在init方法中，创建一个TcpAssociationHandle，这个handle中有一个readHandlerPromise的Promise。
+                            2.调用readHandlerPromise的foreach方法，执行：registerListener，channel.setReadable(true)等动作。
+                                1、其中registerListener，就是设置Channel与Listener的对应关系，当有消息进来时，就会用这个Listener(ProtocolStateActor)消费消息。
+                            3.调用listener notify InboundAssociation(_)，其中下划线就是TcpAssociationHandle，也即这个消息被发送到了AkkaProtocolManager
+                                1、接收到InboundAssociation消息后，创建一个ProtocolStateActor的inbound ActorRef。在这个Actor被真正创建时，执行的初始化操作是：
+                                    1.设置TcpAssociationHandle的readHandlerPromise的success为ActorHandleEventListener(self)，其中self就是ProtocolStateActor的ActorRef。
+                                    2.执行：4-8-2-11-1-1-1-1-2。也即注册，设置可读。
+                                    3.等待Handshake消息到来。
+                    2.当有消息来时，执行TcpServerHandler中的onMessage方法，封装消息成InboundPayload，并通知出去，这里通知的对象是ProtocolStateActor。
+                        1、ProtocolStateActor接收到消息时，先对包进行解码，然后判断是否是关联消息
+                        2、回包，把本地的HandshakeInfo回给客户端。
+                        3、然后把FSM的状态置为Open，并且是AssociatedWaitHandler。
+                            1.在创建AssociatedWaitHandler时，会创建一个notifyInboundHandler
+                            2.创建一个readHandlerPromise = Promise[HandleEventListener]，等待回执。
+                            3.readHandlerPromise.future.map{ HandleListenerRegistered(_) } pipeTo self。
+                                1、pipeTo 只有当readHandlerPromise.future完成，才会执行
+                            4.向associationListener(EndpointManager)通知InboundAssociation消息，参数是new的一个AkkaProtocolHandle，这个handle中会把readHandlerPromise带过去，还有远程的握手信息。
+                            5.当EndpointManager接收到这个消息时，
+                                1、创建一个Endpoint，createEndpoint
+                                    1.这个也就是创建ReliableDeliverySupervisor，跟下面6-2-2-1-1-1-2的流程一样，唯一不一样的地方是：
+                                        1、在创建writer是也就是createWriter即EndpointWriter，进行构建ActorRef的preStart方法中，这个handle是存在的
+                                        2、当存在是，还是创建了一个reader即EndpointReader，使用handle的握手信息的UID，对这个reader赋值
+                                        3、创建成功后，执行readHandlerPromise.success(ActorHandleEventListener(newReader))，这里也就是EndpointReader
+                                            1.这里的readHandlerPromise，也就是ProtocolStateActor中在构建AssociatedWaitHandler时创建的Promise。
+                                            2.这时候执行4-8-11-1-2-3-3
+                                2、执行endpoints的registerWritableEndpoint。
+                            6.当接收到HandleListenerRegistered消息时
+                                1、处理在这期间来的消息。也即通知EndpointReader进行处理。
+                                2、把FSM的状态更改为ListenerReady。
+                        以上，就完成了消息来时的创建工作，就可以进行消费了。
         3、如果是cluster，则是ClusterActorRefProvider
         4、如果是fqcn，则是fqcn，也即其它的provider
         5、
@@ -158,7 +199,9 @@ val system = ActorSystem("AkkaLocalTest")
                     4、把原来UnStartCell中的消息给ActorCell转发过去。
                     5、并把ActorCell指定到underlying。
                 5.这时候RepointableActorRef创建完成。
-    5、发送消息：
+    5、调用initChild方法，把上面的reserveChild添加的方法替换成持有actorRef的ChildRestartStats，名字还是不变，这里就可以通过名字查到对应的ref了。然后就可以发送消息。
+    6、调用ActorRef的Start方法。
+    7、发送消息：
         1.调用!发送消息，最终调用的是ActorCell的sendMessage方法，也就是Dispatch的实现方法，并把消息作了封装Envelope。
         2.调用dispatcher的dispatch方法，进行消息的派发。
         3.邮箱的消息入队操作。
@@ -179,8 +222,7 @@ val system = ActorSystem("AkkaLocalTest")
                     1.在EndpointManager处理Send消息时，
                         1、首先判断，这个addressToWritable是否已经创建过，如果没有，则创建，这里是第一次调用，所以先创建
                         2、使用context.actorOf创建一个ReliableDeliverySupervisor的Endpoint，也即一个ActorRef。
-                            1.actorOf的流程，参考第五条
-                            2.在ReliableDeliverySupervisor的初始化时，会调用createWriter，创建一个EndpointWriter的ActorRef。
+                            1.在ReliableDeliverySupervisor的初始化时，会调用createWriter，创建一个EndpointWriter的ActorRef。
                                 1、在EndpointWriter的preStart方法中，会判断handler也即AkkaProtocolHandle是否已经创建，如果没有则进行AkkaProtocolHandle的创建工作
                                     1.调用AkkaProtocolTransport的associate方法，而这个方法中，则向manager(4-8-2-8-5-1中创建)发送一个AssociateUnderlyingRefuseUid的消息，然后等待manager的处理结果。
                                     2.在AkkaProtocolManager接收到消息后，做的处理是：
@@ -194,35 +236,11 @@ val system = ActorSystem("AkkaLocalTest")
                                     3.在接收到成功的Handle消息后，首先向父节点发送一个ReliableDeliverySupervisor.GotUid消息
                                     4.创建一个EndpointReader，用来读取消息
                                     5.更改Receive，是writing或者buffered
-                            3.在接收到GotUid后，向自己的父节点发送一个GotUid，resendAll。
+                            2.在接收到GotUid后，向自己的父节点发送一个GotUid，resendAll。
                         3、在接收到GotUid后，判断是否是拒绝对象，如果不是，则注册registerWritableEndpointUid，然后处理已经缓存的消息(这个是根据Idle来判断的，具体的逻辑还需要再分析)。
                         4、直接发送消息
         3、消息发送流程完成。
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-ReliableDeliverySupervisor
-EndpointWriter
+        4、发送的都是ActorSelectionMessage封装成的消息，每次发送时，都会把要发送的对象的path一块传递过去。在对方接收到消息后，会从跟路径查找每个孩子。
 
 
 
