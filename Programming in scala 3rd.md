@@ -77,15 +77,136 @@ The resX identifier may be used in later lines. For instance, since res0 was set
 scala> res0 * 3
 res1: Int = 9
 ```
+To print the necessary, but not sufficient, Hello, world! greeting, type:   为了打印的需要，也不是十分的充足，输入一个打招呼的：Hello, world!:
+```
+scala> println("Hello, world!")
+Hello, world
+```
+The println function prints the passed string to the standard output, similar to System.out.println in Java.
 
+这个println方法打印传递的字符串到标准输出，就行Java里面的System.out.println。
 
+### STEP 2. DEFINE SOME VARIABLES   第二步，定义一些变量
 
+Scala has two kinds of variables, vals and vars. A val is similar to a final variable in Java. Once initialized, a val can never be reassigned.
+A var, by contrast, is similar to a non-final variable in Java. A var can be reassigned throughout its lifetime. Here's a val definition:
 
+Scala有两种类型的变量，vals和vars。这个val就行是Java里面的final变量。一旦初始化，这个val就不能被重新赋值。这个var，作为对比，就像是Java里面的非final变量。在它的生命周期中，
+可以被重新的赋值。这里是val变量的定义：
+```
+scala> val msg = "Hello, world!"
+msg: String = Hello, world!
+```
+This statement introduces msg as a name for the string "Hello, world!". The type of msg is java.lang.String, because Scala strings are implemented
+by Java's String class.
 
+这个声明说明msg作为一个字符串“Hello, world!”的名字。这个msg的类型是java.lang.String,因为Scala的字符串是用Java的String类实现的。
 
+If you're used to declaring variables in Java, you'll notice one striking difference here: neither java.lang.String nor String appear anywhere in the
+val definition. This example illustrates _type interface_, Scala's ability to figure out types you leave off. In this case, because you initialized
+msg with a string literal, Scala inferred the type of msg to be String. When the Scala interpreter(or compiler) can infer types, it is often best to
+let it do so rather than fill the code with unnecessary, explicit type annotations. You can, however, specify a type if you wish, and sometimes you 
+probably should. An explicit type annotation can both ensure the Scala compiler infers the type you intend, as well as serve as useful documentation
+for future readers of the code. In contrast to Java, where you specify a variable's type before its name, in Scala you specify a variable's type after
+its name, separated by a colon. For example:
 
+如果你之前用Java声明过变量，你将会注意到一个显著的不同的地方：在使用val定义的地方，没有java.lang.String或者String出现。这个例子说明 _"类型推导"(type interface)_, Scala
+具有想象出你省略类型的能力。这里，因为你用字符串字变量初始化了一个msg，Scala推导出这个msg的类型是String。 当Scala的解释器(或者编译器)能推导类型，省略类型将比那些填充一些不必要的
+的明确类型注释的代码要好很多。 你可以，如果你愿意定义一个类型，很多时候，你应该这样做。一个明确的类型注释，既可以确保Scala编译器推导出你想要的类型，也可以对将来的读这些代码的人
+有很大帮助。对比Java， 你要在变量的前面定义它的类型，而在Scala中，变量的类型在它的名字之后，用冒号作为分隔。比如：
 
+```
+scala> val msg2: java.lang.String = "Hello again, world!"
+msgs: String = Hello again, world!
+```
+Or, since java.lang types are visible with their simple names[4] in Scala programs, simply:
 
+或者，因为在Scala程序里，java.lang类型的简化名是可见的，简写为：
+```
+scala> val msg3: String = "Hello yet again, world!"
+msg3: String = Hello yet again, world!
+```
+Going back to the original msg, now that it is defined, you can use it as you'd expect, for example:
+
+回到这个原来的msg，现在它被定义了，你可以随意使用它，如：
+```
+scala> println(msg)
+Hello, world!
+```
+What you can't do with msg, give that it is a val, not a var, is reassign it[5]. For example, see how the interpreter complains when you attempt the
+following:
+
+什么是不能用msg做的，msg是一个val变量，而不是var，所有不能被重新赋值。例如，如果你尝试使用以下代码修改msg，看一下解释器怎么报错：
+```
+scala> msg = "Goodbye, cruel world!"
+<console>:12: error: reassignment to val
+       msg = "Goodbye, cruel world!"
+           ^
+```
+If reassignment is what you want,you'll need to use a var, as in:
+
+如果你想重新赋值，那么你应该使用var，像下面：
+````
+scala> var greeting = "Hello, world!"
+greeting: String = Hello,world!
+```` 
+Since greeting is a var not a val, you can reassign it later. If you are feeling grouchy later, for example, you could change your greeting to:
+
+因为greeting是一个var而不是val，所以，你可以在以后对它重新赋值。如果你在后面感觉它不好，比如，你可以更改你的greeting：
+```
+scala> greeting = "Leave me alone, world!"
+greeting: String = Leave me alone, world!
+```
+To enter something into the interpreter that spans multiple lines, just keep typing after the first line. If the code you typed so far is not complete
+, the interpreter will respond with a vertical bar on the next line.
+
+为了输入一个跨多行的东西到解释器中，仅仅在第一行后继续编写即可。如果你编写的代码到行尾还没有完成，解释器将会在下一行使用竖线作为回应。
+```
+scala> val multiLine =
+     |   "This is the next line."
+multiLine: String = This is the next line.
+```
+If you realize you have typed something wrong, but the interpreter is still waiting for more input, you can escape by pressing enter twice:
+
+如果你注意到有些你编写错误，但是解释器仍在等待更多的输入，你可以按两次enter键离开。
+```
+scala> val oops =
+       | 
+       | 
+  You typed two blank lines.  Starting a new command.
+  
+  scala>
+```
+In the rest of the book, we'll leave out the vertical bars to make the code easier to read(and easier to copy and paste from the PDF eBook into the interpreter).
+
+在本书的剩余部分，我们将省略掉竖线使代码易读（更容易的从PDF电子书复制粘贴到解释器中）。
+
+###STEP 3. DEFINE SOME FUNCTIONS    第三步，定义一些函数
+
+Now that you've worked with Scala variables, you'll probably want to write some functions. Here's how you do that in Scala:
+
+现在，你已经会使用Scala变量了，你或许想要写一些函数。像这样一样：
+```
+scala> def max(x: Int, y: Int): Int = {
+         if (x > y) x
+         else y
+       }
+max: (x: Int, y: Int)Int
+```
+Functions definitions start with def. The function's name, in this case max, is followed by a comma separated list of parameters in parentheses.
+A type annotation must follow every function parameter, preceded by a colon, because the Scala compiler (and interpreter, but from now on we'll just
+say compiler) does not infer function parameter types. In this example, the function named max takes two parameters, x and y, both of type Int. After
+the close parenthesis of max's parameter list you'll find another ":Int" type annotation. This one defines the _result type_ of the max function itself.
+[6] Following the function's result type is an equals sign and pair of curly braces that contain the body of the function. In this case, the body contains
+a single if expression, which selects either x or y, whichever is greater, as the result of the max function. As demonstrated here, Scala's if expression
+can result in a value, similar to Java's ternary operator. For example, the Scala expression "if(x>y)x else y" behaves similarly to "(x>y)?x:y" in Java
+. The equals sign that precedes the body of a function hints that in the functional world view, a function defines an expression that results in a value.
+The basic structure of a function is illustrated in Figure 2.1.
+
+函数使用def开始。函数的名称，这个例子中的max，其后的圆括号中，是一组以逗号分隔的参数列表。使用冒号作为前缀的类型标注必须在函数参数的后面。在这个例子中，函数的名字是max，有两个参数
+x和y，它们的类型都是Int。在函数max的参数列表的闭圆括号后，你将会发现另一个 ":Int" 类型注释。这个是定义了max函数的 _结果类型_ 。跟在函数结果类型的后面是一个等号，和一对包含
+函数体的大括号。这里，函数体包含了一个if表达式，这个选择x或者y的最大者，最为max的结果。正如我们所看，Scala的if表达式就像Java中的三元表达式一样生成结果。例如，这个Scala的表达式
+"if(x>y)x else y" 就像Java的"(x>y)?x:y"。这个函数体前的等号符号提示我们，在函数式的世界里，函数定义是一个可以产生值的表达式。图2.1可以说明函数的基础结构。
 
 
 
