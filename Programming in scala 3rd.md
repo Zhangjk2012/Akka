@@ -207,7 +207,96 @@ The basic structure of a function is illustrated in Figure 2.1.
 x和y，它们的类型都是Int。在函数max的参数列表的闭圆括号后，你将会发现另一个 ":Int" 类型注释。这个是定义了max函数的 _结果类型_ 。跟在函数结果类型的后面是一个等号，和一对包含
 函数体的大括号。这里，函数体包含了一个if表达式，这个选择x或者y的最大者，最为max的结果。正如我们所看，Scala的if表达式就像Java中的三元表达式一样生成结果。例如，这个Scala的表达式
 "if(x>y)x else y" 就像Java的"(x>y)?x:y"。这个函数体前的等号符号提示我们，在函数式的世界里，函数定义是一个可以产生值的表达式。图2.1可以说明函数的基础结构。
+![Figure 2.1](img/2.1.png)
 
+**Figure 2.1-The basic form of a function definition in Scala.图2.1-Scala函数定义的基础组成**
+
+Sometimes the Scala compiler will require you to specify the result type of a function. If the function is _recursive_ [7], for example, you must explicitly
+specify the function's result type. In the case of max, however, you may leave the result type off and the compiler infer it.[8] Also, if a function consists
+of just one statement, you can optionally leave off the curly braces. Thus, you could alternatively write the max function like this:
+
+有时候Scala的编译器会要求你定义函数的结果类型。例如，你必须明确指出递归函数的函数返回值。相反，在max例子中，你可以省去结果类型，并且编译器可以推导出它。同时，如果一个方法仅仅由一段组成，
+你可以选择省略大括号。因此，你可以选择像这样写max函数：
+```
+scala> def max(x: Int, y: Int) = if (x > y) x else y
+max: (x: Int, y: Int)Int
+```
+Once you defined a function, you can call it by name, as in:
+
+一旦你定义了一个函数，你可以通过名字调用他，像这样：
+```
+scala> max(3, 5)
+res4: Int = 5
+```
+Here's the definition of a function that takes no parameters and returns no interesting result:
+
+这里是一个函数的定义，它没有参数和没有返回值：
+```
+scala> def greet() = println("Hello, world!")
+greet: ()Unit
+```
+When you define the greet() function, the interpreter will respond with greet: ()Unit. "greet" is, of course, the name of function. The empty parentheses
+indicate the function takes no parameters. And Unit is greet's result type. A result type of Unit indicates the function returns no interesting value.
+Scala's Unit type is similar to Java's void type; in fact, every void-returning method in Java is mapped to a Unit-returning method in Scala. Methods with
+the result type of Unit, therefore, are only executed for their side effects. In the case of greet(), the side effect is a friendly greeting printed to 
+the standard output.
+
+当你定义一个greet()函数，这个解释器会回应一个greet: ()Unit。当然，greet是函数的名称。空的括号表明这个函数没有参数。且Unit是greet的结果类型。Unit的结果类型表明，这个函数没有返回值。
+Scala的Unit类型就像是Java中的void类型。实际上，Java中的每个空返回值(void-returning)都是对应到Scala中的Unit返回值(Unit-returning)。方法的返回值是Unit，因此，执行它仅仅是为了
+它的副作用(side effect)。greet例子，它的副作用是友好的问候被输出到标准输出中。
+
+In the next step, you'll place Scala code in a file and run it as a script. If you wish to exit the interpreter, you can do so by entering :quit or :q.
+
+接下来，你将会在文件中写Scala代码，并作为脚本运行它。如果你想退出解释器，你可以输入:quit或者:q。
+```
+scala> :quit
+$
+```  
+
+STEP 4. WRITE SOME SCALA SCRIPTS   第四步， 写Scala脚本
+
+Although Scala is designed to help programmers build very large-scale system, it also scales down nicely to scripting. A script is just a sequence of 
+statements in a file that will be executed sequentially. Put this into a file named hello.scala:
+尽管Scala的设计是为了帮助程序员构建大的可伸缩的系统，它也可以很好的适应脚本。一个脚本是一个连续的段在一个文件中，会被顺序执行。把这些放到名字为hello.scala的文件中：
+```scala
+println("Hello, world, from a script!")
+```
+then run:[9] 然后运行
+```
+$ scala hello.scala
+```
+And you should get ye anther greeting:   你会得到另外一个问候：
+
+`Hello, world, from a script`
+
+Command line arguments to a Scala script are available via a Scala array named args. In Scala, arrays are zero based, and you access an element by specifying
+an index in parentheses. So the first element in a Scala array named steps is step(0), not steps\[0\], as in Java. To try this out, type the following into
+a new file named helloarg.scala:
+Scala脚本的命令行参数可以通过名叫args的Scala数组获取。在Scala中，数组从0开始，可以在圆括号中指定一个下标来获取元素。所以Scala的steps数组的第一个元素是steps(0)，而不是Java中的steps\[0\]。
+为了验证这个，把下面的输入到helloarg.scala的新文件中：
+```scala
+// Say hello to the first argument
+println("Hello, " + args(0) + "!")
+```
+then run: 运行:
+
+```
+$ scala heloarg.scala planet
+```
+In this command, "planet" is passed as a command line argument, which is accessed in the script as args(0). Thus you should see:
+
+这个命令，“planet” 作为命令行参数被传递，在脚本里使用args(0)获取值。因此你会看到：
+
+`Hello planet!`
+
+Note that this script included a comment. The scala compiler will ignore characters between // and the next end of line and any characters between /* and */
+This example also shows Strings being concatenated with the + operator. The works as you'd expect. The expression "Hello, " + "world!" will result in the
+string "Hello, world!".
+
+注意这个脚本包含了一个注释。Scala的编译器会忽略在//到行尾的字符和在/* 与 */ 之间的字符。这个例子也展示了使用+操作符把字符串连接起来。正如你期望的那样运行。这个表达式： "Hello, " + "world!"
+将会生成 "Hello, world!" 字符串。
+
+STEP 5. LOOP WITH WHILE; DECIDE WITH IF   While循环，If判断
 
 
 
