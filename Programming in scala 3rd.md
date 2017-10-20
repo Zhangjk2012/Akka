@@ -298,6 +298,145 @@ string "Hello, world!".
 
 STEP 5. LOOP WITH WHILE; DECIDE WITH IF   While循环，If判断
 
+To try out a while, type the following into a file named printargs.scala
+
+```scala
+var i = 0
+while (i < args.length) {
+  println(args(i))
+  i += 1
+}
+```
+#####Note
+Although the examples in this section help explain while loops, they do not demonstrate the best Scala style. In the next section, you'll see better
+approaches that avoid iterating through arrays with indexes.
+
+尽管本段的这个例子帮助解释了while循环，他们不能证明这是最好的Scala风格。在下一段，你将会看到好的方法，避免使用下标遍历数组。
+
+This script starts with a variable definition, var i = 0. Type inference gives i the type scala.Int, because that is the type of its initial value, 0.
+The while construct on the next line causes the block (the code between the curly braces) to repeatedly executed until the boolean expression i < 
+args.length is false. args.length gives the length of the args array. The block contains two statements, each indented two spaces, the recommended
+indentation style for Scala. The first statement, println(args(i)) prints out the ith command line argument. The second statement, i+=1, increments
+i by one. Note that Java's ++ i and i++ don't work in Scala. To increment in Scala, you need to say either i = i + 1 or i += 1. Run this script with
+the following command:
+
+这个脚本以一个变量定义开始，var i = 0. 类型推断出i的类型是scala.Int，因为给它的初始值是0。 下一行的while结构导致这个语句块(大括号中的代码)被重复执行直到boolean表达式i<
+args.length返回false。args.length提供args数组的长度。这语句块包含两个声明，每一行都会缩进两个空格，这是Scala推荐的缩进风格。第一个声明，println(args(i)) 打印第i个命令
+行参数。第二个声明，i += 1，对i加一。注意，Java中的 ++i 与 i++ 不能用在Scala中。在Scala中加一，你需要用 i = i + 1或者 i += 1。使用下面命令运行这个脚本：
+```
+$ scala printargs.scala Scala is fun
+``` 
+And you should see:   你将会看到：
+```
+Scala
+is
+fun
+```
+For even more fun, type the following code into a new file with the name echoargs.scala:
+
+更加有趣的是，输入一下的代码到一个名称为echoargs.scala的新文件中:
+
+```scala
+var i = 0
+while (i < args.length) {
+  if (i != 0) 
+    print(" ")
+  print(args(i))
+  i += 1
+}
+println()
+```
+In this version, you've replaced the println call with a print call, so that all the arguments will be printed out on the same line. To make this
+readable, you've inserted a single space before each argument expect the first var the if (i != 0) construct. Since i != 0 will be false the first 
+time through the while loop, no space will get printed before initial argument. Lastly, you've added one more println to the end, to get a line 
+return after printing out all the arguments. Your output will be very pretty indeed. If you run this script with the following command:
+
+这个版本，你已经使用print调用替换println调用，所以，所有的参数都会在同一行输出。为了可读性，你已经在每个参数前面插入了一个空格，通过if (i != 0)除去了第一个参数。因为在第一次
+经过while循环，i != 0 将会返回false， 没有空格在初始参数前输出。最后，在末尾添加了一个println，在所有参数输出后获取新的一行。你的输出将会非常好。如果你使用下面命令运行它：
+```
+$ scala echoargs.scala Scala is even more fun
+```
+You will get: 你会看到：
+```
+Scala is even more fun
+
+```
+Note that in Scala, as in Java, you must put the boolean expression for a while or an if in parentheses.(In other words, you can't say in Scala things
+like if i < 10 as you can in a language such as Ruby. You must be say if (i < 10) in Scala.) Another similarity to Java is that if a block has only 
+one statement, you can optionally leave off the curly braces, as demonstrated by the if statement in echoargs.scala. And although you haven't seen 
+any of them, Scala does use semicolons to separate statements as in Java, except that in Scala the semicolons are very often optional, giving some
+welcome relief to your right little finger. If you had been in a more verbose mood, therefore, you could have written the echoargs.scala script as
+follows:
+
+注意，在Scala中，就像Java一样，你必须把while的布尔表达式放到括号中。(换句话说，在Scala中，你不能像Ruby语言那样使用if i < 10，你必须使用if(i < 10)。)另一个与Java类似的地方
+是，if语句块只有一句，你可选择省略大括号，在echoargs.scala中已经被证明了。尽管你没有看见任何的分号，但是Scala跟Java一样也是用分号分隔语句的，因为在Scala中分号是可选的，这给你
+的右小拇指以安慰。如果你心情比较复杂，因此，你可以像一下一样写入到echoargs.scala中：
+```scala
+var i = 0;
+while (i < args.length) {
+  if (i != 0) {
+    print(" ");
+  }
+  print(args(i));
+}
+println();
+```
+###STEP 6. ITERATE WITH FOREACH AND FOR  使用Foreach和For遍历
+  
+Although you may not have realized it, when you wrote the while loops in the previous step, you were programming in an _imperative_ style. In the
+imperative style, which is the style you normally use with languages like Java, C++ and C, you give one imperative command at a time, iterate with
+loops, and often mutate state shared between different functions. Scala enables you to program imperatively, but as you get to know Scala better,
+you'll likely often find yourself programming in a more _functional_ style. In fact, one of the main aims of this book is to help you become as
+comfortable with the functional style as you are with imperative style.
+
+尽管你也行还没有实现过它，当你在之前的步骤写while循环，你使用的是 _命令式_ 风格。在命令式风格中，你可以Java、C++、C中正常的使用，你同一时间给出命令，循环遍历，经常在不同的
+函数中共享可变状态。Scala也提供了命令式编程风格，但是，为了让你更好的理解Scala，你可能会发现你自己使用 _函数式_ 编程风格。实际上，这本书的目的之一就是帮助你适应函数式编程风格
+就像你使用命令式风格一样。
+
+One of the main characteristics of a functional language is that functions are first class constructs, and that's very true in Scala. For example,
+another (far more concise) way to print each command line argument is:
+
+函数式编程语言的一个主要特点是，函数是一等公民，在Scala中是真的。例如，另外(更加简洁的)的答应命令行参数的方法：
+
+`args.foreach(arg => println(arg))`  
+
+In this code, you call the foreach method on args and pass in a function. In this case, you're passing in a _function literal_ that takes one parameter
+named arg. The body of the function is println(arg). If you type the above code into a new file named pa.scala and execute with the command:
+
+这段代码，你在args上调用foreach方法，并传递一个函数。本例中，你传递了一个 _函数显示声明(function literal)_ 并且带有一个arg的参数。这个函数体是 println(arg)。如果你在
+pa.scala的新文件中编写了以上代码并以下面的命令执行了它，
+
+```
+$ scala pa.scala Concise is nice
+```
+You should see:   你将会看到
+```
+Concise
+is
+nice
+```
+In the previous example, the Scala interpreter infers the type of arg to be String, since String is the element type of the array on which you're 
+calling foreach. If you'd prefer to be more explicit, you can mention the type name. But when you do, you'll need to wrap the argument portion in
+parentheses (which is the normal form of the syntax anyway):
+
+这之前的例子，Scala的
+
+```scala
+args.foreach((arg: String) => println(arg))
+``` 
+Running this script has the same behavior as the previous one.
+
+If you're in the mood for more conciseness instead of more explicitness, you can take advantage of a special shorthand in Scala. If a function literal
+consists of one statement that takes a single argument, you need not explicitly name and specify the argument[10]. Thus, the following code alse works:
+
+`args.foreach(println)`
+
+To summarize, the syntax for a function literal is a list of named parameters, in parentheses, a right arrow, and then the body of the function. This
+syntax is illustrated in Figure 2.2.
+![图2.2](img/2.2.png)
+
+
+
 
 
 
