@@ -419,21 +419,74 @@ In the previous example, the Scala interpreter infers the type of arg to be Stri
 calling foreach. If you'd prefer to be more explicit, you can mention the type name. But when you do, you'll need to wrap the argument portion in
 parentheses (which is the normal form of the syntax anyway):
 
-这之前的例子，Scala的
+这之前的例子，Scala的解释器推断出arg的类型是String。所以，调用foreach时，数组元素类型是String。如果你想更加明确，你可以提供类型名称。但是当你那样做，你需要在括号中封装
+参数(这是任意语法的基本组成)
 
 ```scala
 args.foreach((arg: String) => println(arg))
 ``` 
 Running this script has the same behavior as the previous one.
 
+运行的结果与前一个相同。
+
 If you're in the mood for more conciseness instead of more explicitness, you can take advantage of a special shorthand in Scala. If a function literal
-consists of one statement that takes a single argument, you need not explicitly name and specify the argument[10]. Thus, the following code alse works:
+consists of one statement that takes a single argument, you need not explicitly name and specify the argument[10]. Thus, the following code also works:
+
+如果你喜欢用简介替代明确，你可以使用更高级的速写方法。如果一个方法由一段持有单个参数组成，你不需要明确指出名字和定义参数。因此，下面的代码一样可以打印出参数：
 
 `args.foreach(println)`
 
 To summarize, the syntax for a function literal is a list of named parameters, in parentheses, a right arrow, and then the body of the function. This
 syntax is illustrated in Figure 2.2.
+
+总结一下，函数显式声明语法是：一组参数名称，括号，右箭头，函数体。图2.2解释了这个语法。
+
 ![图2.2](img/2.2.png)
+
+Now, by this point you may be wondering what happened to those trusty for loops you haven been accustomed to using in imperative languages, such as 
+Java and C. In an effort to guide you in a functional direction, only a functional relative of the imperative for (called a _for expression_) is
+available in Scala.While you won't see their full power and expressiveness until you reach (or peek ahead to) Section 7.3, we'll give you a glimpse
+here. In a new file named forargs.scala, type the following:
+
+现在，通过这一点，你可能想知道那些命令式语言如Java和C里常用的for循环发生了什么。为了努力引导你使用函数式编程，Scala中只有一个相对于指令式for(叫做 for表达式)的函数是可用的。
+在7.3章节，将会详细讲解它们的完整功能和表现，这里会讲一点。创建一个forargs.scala文件，输入一下代码：
+
+`for (arg <- args) println(arg)`
+
+The parentheses after the "for" contain arg <- args.[11] To the right <- symbol is the familiar args array. The the left of <- is "arg", the name of a val,
+not a var(Because it is always a val, you just write "arg" by itself, not "val arg"). Although arg may seem to be a var, because it will get a new
+value on each iteration, it really is a val: arg can't be reassigned inside the body of the for expression. Instead, for each element of the args 
+array, a new arg val will be created and initialized to the element value, and the body of the for will be executed.
+
+for后面的括号中包含了一个arg <- args。 <-符号右边的是熟悉的args数组。<-的左边是arg，它是一个val而不是var变量(因为它总是val，所有只需要写arg即可，不用写"val arg")。尽管arg
+可能看起来像是一个var，因为它每次遍历都会有一个新值，但是它确实是一个var: arg不能再for表达式内部再被赋值。相应的，for遍历args的每一个元素，都会创建一个新的arg，并且使用元素初始化。
+然后for的代码块将会被执行。
+
+If you run the forargs.scala script with the command:
+
+如果，你使用这个命令运行forargs.scala脚本：
+
+```
+$ scala forargs.scala for arg in args
+```
+
+you will see:     你将会看到：
+```
+for
+arg
+in
+args
+```
+
+Scala's for expression can do much more than this, but this example is enough to get you started. We'll show you more about for in Section 7.3 and 
+Chapter 23.
+
+Scala的for表达式可以做更多的事情，但是这个例子足以让你使用它了。我们将要在第7.3章节和23章更深入的讲解。
+
+
+
+
+
 
 
 
