@@ -203,7 +203,7 @@ val system = ActorSystem("AkkaLocalTest")
     6、调用ActorRef的Start方法。
     7、发送消息：
         1.调用!发送消息，最终调用的是ActorCell的sendMessage方法，也就是Dispatch的实现方法，并把消息作了封装Envelope。
-        2.调用dispatcher的dispatch方法，进行消息的派发。
+        2.调用dispatcher消息调度器的dispatch方法，进行消息的派发。
         3.邮箱的消息入队操作。
         4.执行executorService execute mbox,也就三线程池提交任务的过程。
             1、在mailbox的run方法中，直接进行了消费，这个对throughput有处理，也就是，当前处理这个邮箱的线程，是否要处理配置这么多的消息后，才释放此线程。
